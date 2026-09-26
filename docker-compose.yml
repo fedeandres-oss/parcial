@@ -1,0 +1,98 @@
+version: '3.8'
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  joomla_data:
+
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: database
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-joomladb}
+      POSTGRES_USER: ${POSTGRES_USER:-joomlauser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-joomlapassword}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-joomlauser} -d $${POSTGRES_DB:-joomladb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  joomla:
+    image: joomla:latest
+    container_name: joomla
+    restart: always
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      JOOMLA_DB_HOST: database
+      JOOMLA_DB_USER: ${JOOMLA_DB_USER:-joomlauser}
+      JOOMLA_DB_PASSWORD: ${JOOMLA_DB_PASSWORD:-joomlapassword}
+      JOOMLA_DB_NAME: ${JOOMLA_DB_NAME:-joomladb}
+      JOOMLA_DB_TYPE: pgsql
+    volumes:
+      - joomla_data:/var/www/html
+      - ./joomla_logs:/var/log/apache2
+    networks:
+      - frontend_net
+      - backend_net
+# 3. Entorno de Ciencia de Datos - Jupyter
+  jupyter:
+    image: jupyter/minimal-notebook:latest
+    container_name: jupyter
+    restart: always
+    environment:
+      JUPYTER_ENABLE_LAB: "yes"
+    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.base_url='/jupyter'
+    volumes:
+      - ./jupyter/notebooks:/home/jovyan/work
+    networks:
+      - frontend_net
+      - backend_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SERVER_ROOT_URL=http://localhost/grafana
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./joomla_logs:/var/log/joomla:ro
+    networks:
+      - frontend_net
+      - backend_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./joomla_logs:/var/log/nginx_shared
+    depends_on:
+      - joomla
+      - jupyter
+      - grafana
+    networks:
+      - frontend_net

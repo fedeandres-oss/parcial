@@ -1,0 +1,55 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Registro de Sesiones Activas en Joomla",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-Joomla" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-Joomla" },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT count(*) AS total_sesiones FROM #__session;",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "values": false, "calcs": ["lastNotNull"], "fields": "" },
+        "orientation": "auto",
+        "textMode": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Conteo de Contenidos Creados por Estado",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "PostgreSQL-Joomla" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "PostgreSQL-Joomla" },
+          "editorMode": "code",
+          "format": "table",
+          "rawSql": "SELECT state AS estado, count(*) AS cantidad FROM #__content GROUP BY state;",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["joomla", "postgres"],
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Panel de Monitoreo Joomla & Postgres",
+  "uid": "joomla-postgres-dash"
+}
