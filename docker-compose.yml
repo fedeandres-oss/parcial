@@ -21,6 +21,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-joomlapassword}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - backend_net
     healthcheck:
@@ -48,7 +49,8 @@ services:
     networks:
       - frontend_net
       - backend_net
-# 3. Entorno de Ciencia de Datos - Jupyter
+
+  # 3. Entorno de Ciencia de Datos - Jupyter
   jupyter:
     image: jupyter/minimal-notebook:latest
     container_name: jupyter
