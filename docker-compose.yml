@@ -1,34 +1,22 @@
-version: '3.8'
-
-networks:
-  frontend_net:
-    driver: bridge
-  backend_net:
-    driver: bridge
-
-volumes:
-  postgres_data:
-  joomla_data:
-
 services:
   database:
     image: postgres:16-alpine
     container_name: database
     restart: always
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-joomladb}
-      POSTGRES_USER: ${POSTGRES_USER:-joomlauser}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-joomlapassword}
+      POSTGRES_DB: ${JOOMLA_DB_NAME:-joomladb}
+      POSTGRES_USER: ${JOOMLA_DB_USER:-joomlauser}
+      POSTGRES_PASSWORD: ${JOOMLA_DB_PASSWORD:-joomlapassword}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - backend_net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-joomlauser} -d $${POSTGRES_DB:-joomladb}"]
+      test: ["CMD-SHELL", "pg_isready -U ${JOOMLA_DB_USER:-joomlauser} -d ${JOOMLA_DB_NAME:-joomladb}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - backend_net
 
   joomla:
     image: joomla:latest
@@ -46,39 +34,7 @@ services:
     volumes:
       - joomla_data:/var/www/html
       - ./joomla_logs:/var/log/apache2
-    networks:
-      - frontend_net
-      - backend_net
-
-  # 3. Entorno de Ciencia de Datos - Jupyter
-  jupyter:
-    image: jupyter/minimal-notebook:latest
-    container_name: jupyter
-    restart: always
-    environment:
-      JUPYTER_ENABLE_LAB: "yes"
-    command: start-notebook.sh --NotebookApp.token='' --NotebookApp.password='' --NotebookApp.base_url='/jupyter'
-    volumes:
-      - ./jupyter/notebooks:/home/jovyan/work
-    networks:
-      - frontend_net
-      - backend_net
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: always
-    depends_on:
-      database:
-        condition: service_healthy
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
-      - GF_SERVER_ROOT_URL=http://localhost/grafana
-    volumes:
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./joomla_logs:/var/log/joomla:ro
+      - ./configuration.php:/var/www/html/configuration.php
     networks:
       - frontend_net
       - backend_net
@@ -90,11 +46,44 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./joomla_logs:/var/log/nginx_shared
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - joomla
-      - jupyter
-      - grafana
     networks:
       - frontend_net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - frontend_net
+      - backend_net
+
+  jupyter:
+    image: jupyter/base-notebook:latest
+    container_name: jupyter
+    restart: always
+    ports:
+      - "8888:8888"
+    command: >
+      bash -c "pip install --no-cache-dir psycopg2-binary pandas sqlalchemy && start-notebook.sh --NotebookApp.token=''"
+    volumes:
+      - ./jupyter:/home/jovyan/work
+    networks:
+      - backend_net
+
+volumes:
+  postgres_data:
+  joomla_data:
+  grafana_data:
+
+networks:
+  frontend_net:
+    driver: bridge
+  backend_net:
+    driver: bridge
