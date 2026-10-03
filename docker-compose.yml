@@ -31,6 +31,13 @@ services:
       JOOMLA_DB_PASSWORD: ${JOOMLA_DB_PASSWORD:-joomlapassword}
       JOOMLA_DB_NAME: ${JOOMLA_DB_NAME:-joomladb}
       JOOMLA_DB_TYPE: pgsql
+    entrypoint: >
+      bash -c "
+        /entrypoint.sh apache2-foreground &
+        sleep 15 &&
+        rm -rf /var/www/html/installation &&
+        wait
+      "
     volumes:
       - joomla_data:/var/www/html
       - ./joomla_logs:/var/log/apache2
