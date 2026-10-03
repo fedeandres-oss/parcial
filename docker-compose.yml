@@ -10,6 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database/seed-informe.sql:/docker-entrypoint-initdb.d/seed-informe.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${JOOMLA_DB_USER:-joomlauser} -d ${JOOMLA_DB_NAME:-joomladb}"]
       interval: 10s
