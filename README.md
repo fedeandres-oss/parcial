@@ -7,9 +7,16 @@ Proyecto de orquestación de infraestructura web multi-contenedor con Nginx, Joo
 - Docker (versión 20.10+)
 - Docker Compose (v2.0+)
 
-## Instrucciones de Despliegue (Zero-Touch Deployment)
+## Instrucciones de Despliegue
 
 1. **Clonar el repositorio:**
    ```bash
    git clone <URL_DE_TU_REPOSITORIO>
    cd parcial
+   docker compose up -d
+
+## Credenciales para acceso grafana
+
+Usuario: admin
+Contraseña: admin
+
